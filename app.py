@@ -132,7 +132,7 @@ bt_days = st.sidebar.number_input("N dias de backtest", min_value=7, max_value=9
 # =========================
 # Upload CSV/Excel e mapeamento
 # =========================
-st.title("Previsão de Entregas (SARIMAX) — Múltiplas Séries")
+st.title("Previsão SARIMAX - FMA Qualificação")
 st.write("Envie um **CSV** ou **Excel** com **uma coluna de data** e **várias colunas numéricas** de entregas.")
 
 up = st.file_uploader("📥 Envie CSV/Excel", type=["csv", "xlsx", "xls"])
