@@ -74,10 +74,13 @@ def make_br_holiday_set(year: int, include_facultativos: bool, include_joinville
         f"{year}-01-01", f"{year}-04-21", f"{year}-05-01",
         f"{year}-09-07", f"{year}-10-12", f"{year}-11-02", f"{year}-11-15",
     }
-    if year >= 2023:  # Consciência Negra virou nacional em 2023
+    # Consciência Negra (nacional desde 2023)
+    if year >= 2023:
         S.add(f"{year}-11-20")
     pascoa = easter_sunday(year)
-    S.add((pascoa - pd.Timedelta(days=2)).strftime("%Y-%m-%d"))  # Sexta-Feira Santa
+    # Sexta-Feira Santa
+    S.add((pascoa - pd.Timedelta(days=2)).strftime("%Y-%m-%d"))
+    # Pontos facultativos (opcional)
     if include_facultativos:
         S.update({
             (pascoa - pd.Timedelta(days=48)).strftime("%Y-%m-%d"),  # Carnaval (seg)
@@ -85,8 +88,9 @@ def make_br_holiday_set(year: int, include_facultativos: bool, include_joinville
             (pascoa - pd.Timedelta(days=46)).strftime("%Y-%m-%d"),  # Cinzas
             (pascoa + pd.Timedelta(days=60)).strftime("%Y-%m-%d"),  # Corpus Christi
         })
+    # Joinville/SC (municipal)
     if include_joinville:
-        S.add(f"{year}-03-09")  # Aniversário de Joinville (municipal)
+        S.add(f"{year}-03-09")
     return S
 
 def holidays_memory(index: pd.DatetimeIndex, include_facultativos: bool, include_joinville: bool) -> pd.Series:
@@ -217,17 +221,27 @@ forecast_end = pd.to_datetime(forecast_end)
 forecast_index = pd.date_range(start=forecast_start, end=forecast_end, freq="D")
 
 # =========================
-# Exógenas (finais de semana + feriados)
+# Exógenas (finais de semana + feriados) — **CORRIGIDO**
 # =========================
 if use_weekend:
-    is_weekend_tr = (df.index.dayofweek >= 5).astype(int)
-    is_weekend_fc = pd.Series((forecast_index.dayofweek >= 5).astype(int), index=forecast_index, name="is_weekend")
+    # ✅ Garante um pd.Series com índice e nome (evita AttributeError ao chamar .rename)
+    is_weekend_tr = pd.Series(
+        (df.index.dayofweek >= 5).astype(int),
+        index=df.index,
+        name="is_weekend"
+    )
+    is_weekend_fc = pd.Series(
+        (forecast_index.dayofweek >= 5).astype(int),
+        index=forecast_index,
+        name="is_weekend"
+    )
 else:
     is_weekend_tr = pd.Series(0, index=df.index, name="is_weekend")
     is_weekend_fc = pd.Series(0, index=forecast_index, name="is_weekend")
 
+# Feriados
 if holiday_source == "Em memória (BR)":
-    is_holiday_train = holidays_memory(df.index, include_facultativos, include_joinville)
+    is_holiday_train = holidays_memory(df.index, include_facultativos, include_joinville)  # já vem .rename("is_holiday")
     is_holiday_fc = holidays_memory(forecast_index, include_facultativos, include_joinville)
 elif holiday_source == "Upload CSV":
     st.info("Envie um CSV com coluna 'data' (YYYY-MM-DD) marcando feriados.")
@@ -249,8 +263,9 @@ else:
     is_holiday_train = pd.Series(0, index=df.index, name="is_holiday")
     is_holiday_fc = pd.Series(0, index=forecast_index, name="is_holiday")
 
-exog_train_base = pd.concat([is_weekend_tr.rename("is_weekend"), is_holiday_train], axis=1)
-exog_fc_base = pd.concat([is_weekend_fc, is_holiday_fc], axis=1)
+# ✅ Séries já estão nomeadas; concatenação direta
+exog_train_base = pd.concat([is_weekend_tr, is_holiday_train], axis=1)
+exog_fc_base    = pd.concat([is_weekend_fc,  is_holiday_fc],  axis=1)
 
 with st.expander("🔍 Auditoria de feriados na previsão"):
     audit = pd.DataFrame({
